@@ -35,7 +35,7 @@ def init_selenium():
     prefs = {"profile.default_content_setting_values.notifications": 2}
     options.add_experimental_option("prefs", prefs)
 
-    chrome_service = fs.Service(executable_path='./chromedriver')
+    chrome_service = fs.Service(executable_path='../chromedriver')
     return webdriver.Chrome(service=chrome_service, options=options)
 
 
