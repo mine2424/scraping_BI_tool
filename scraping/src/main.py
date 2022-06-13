@@ -101,8 +101,8 @@ def get_spec_details(all_grade_url: list) -> list:
             # thはtitle, tdはvalue
             all_table = spec_detail.find_all('tr')
             for table in all_table:
-                title = table.find('th')
-                value = table.find('td')
+                title = table.find('th').text
+                value = table.find('td').text
                 print(f'title: {title}, value: {value}')
                 all_spec_details.append(SpecTable(title=title, value=value))
 
