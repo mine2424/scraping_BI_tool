@@ -5,6 +5,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome import service as fs
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
+from tqdm import tqdm
 
 
 class SpecTable:
@@ -55,7 +56,7 @@ def get_all_makers() -> list:
 
 def get_all_vehicle_type(all_maker_url: list) -> list:
     all_vehicle_type_url = []
-    for i, maker_url in enumerate(all_maker_url):
+    for i, maker_url in enumerate(tqdm(all_maker_url)):
         # TODO: remove i < 10
         if i < 10:
             time.sleep(2)
@@ -64,7 +65,7 @@ def get_all_vehicle_type(all_maker_url: list) -> list:
             for i, body_type in enumerate(all_vehicle_type):
                 url = body_type.find('a').get('href')
                 all_vehicle_type_url.append(url)
-                print(f'vehicle_type: {body_type.get_text()}')
+                # print(f'vehicle_type: {body_type.get_text()}')
 
     print(f'get_all_vehicle_type passed')
     return all_vehicle_type_url
@@ -72,7 +73,7 @@ def get_all_vehicle_type(all_maker_url: list) -> list:
 
 def get_all_grade_name(all_vehicle_type_url: list) -> list:
     all_grade_name_url = []
-    for i, vehicle_type_url in enumerate(all_vehicle_type_url):
+    for i, vehicle_type_url in enumerate(tqdm(all_vehicle_type_url)):
         # TODO: remove i < 10
         if i < 10:
             time.sleep(2)
@@ -95,7 +96,7 @@ def get_all_grade_name(all_vehicle_type_url: list) -> list:
 
 def get_spec_details(all_grade_url: list) -> list:
     all_spec_details = []
-    for i, grade_url in enumerate(all_grade_url):
+    for i, grade_url in enumerate(tqdm(all_grade_url)):
         # TODO: remove i < 10
         if i < 10:
             time.sleep(2)
@@ -108,7 +109,7 @@ def get_spec_details(all_grade_url: list) -> list:
                 value = table.find('td')
                 if title is None or value is None:
                     continue
-                print(f'title: {title.get_text()}, value: {value.get_text()}')
+                # print(f'title: {title.get_text()}, value: {value.get_text()}')
                 all_spec_details.append(
                     SpecTable(title=title.get_text(), value=value.get_text()))
 
@@ -116,10 +117,15 @@ def get_spec_details(all_grade_url: list) -> list:
     return all_spec_details
 
 
-all_maker = get_all_makers()
+def main():
+    all_maker = get_all_makers()
 
-all_vehicle_type = get_all_vehicle_type(all_maker)
+    all_vehicle_type = get_all_vehicle_type(all_maker)
 
-all_grade_name = get_all_grade_name(all_vehicle_type)
+    all_grade_name = get_all_grade_name(all_vehicle_type)
 
-spec_details = get_spec_details(all_grade_name)
+    spec_details = get_spec_details(all_grade_name)
+
+
+if __name__ == '__main__':
+    main()
