@@ -23,4 +23,7 @@ pip3 install selenium
 requests 2.28.0
 BeautifulSoup4 4.11.1
 selenium 4.2.0
+
+# requirementsへpackage listをコピー
+pip freeze > requirements.txt
 ```
