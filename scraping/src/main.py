@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome import service as fs
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.common.by import By
 
 
 class SpecTable:
@@ -63,6 +64,7 @@ def get_all_vehicle_type(all_maker_url: list) -> list:
             for i, body_type in enumerate(all_vehicle_type):
                 url = body_type.find('a').get('href')
                 all_vehicle_type_url.append(url)
+                print(f'vehicle_type: {body_type.get_text()}')
 
     print(f'get_all_vehicle_type passed')
     return all_vehicle_type_url
@@ -71,17 +73,18 @@ def get_all_vehicle_type(all_maker_url: list) -> list:
 def get_all_grade_name(all_vehicle_type_url: list) -> list:
     all_grade_name_url = []
     for i, vehicle_type_url in enumerate(all_vehicle_type_url):
+        # TODO: remove i < 10
         if i < 10:
             time.sleep(2)
 
             browser = init_selenium()
             browser.get(vehicle_type_url)
 
-            if len(browser.find_elements_by_id('specTblParts')) > 0:
-                iframe = browser.find_element_by_id("specTblParts")
+            if len(browser.find_elements(by=By.ID, value='specTblParts')) > 0:
+                iframe = browser.find_element(by=By.ID, value='specTblParts')
                 browser.switch_to.frame(iframe)
-                all_vehicle_type = browser.find_element_by_class_name(
-                    "gradeName")
+                all_vehicle_type = browser.find_element(
+                    by=By.CLASS_NAME, value='gradeName')
                 all_grade_name_url.append(
                     all_vehicle_type.get_attribute('href'))
                 browser.close()
@@ -101,10 +104,13 @@ def get_spec_details(all_grade_url: list) -> list:
             # thはtitle, tdはvalue
             all_table = spec_detail.find_all('tr')
             for table in all_table:
-                title = table.find('th').text
-                value = table.find('td').text
-                print(f'title: {title}, value: {value}')
-                all_spec_details.append(SpecTable(title=title, value=value))
+                title = table.find('th')
+                value = table.find('td')
+                if title is None or value is None:
+                    continue
+                print(f'title: {title.get_text()}, value: {value.get_text()}')
+                all_spec_details.append(
+                    SpecTable(title=title.get_text(), value=value.get_text()))
 
     print(f'get_spec_details passed')
     return all_spec_details
