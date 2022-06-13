@@ -13,8 +13,9 @@ class SpecTable:
 
 
 def request_html_parse(url: str):
-    html_text = requests.get(url).text
-    return BeautifulSoup(html_text, 'html.parser')
+    res = requests.get(url)
+    res.encoding = res.apparent_encoding
+    return BeautifulSoup(res.text, 'html.parser')
 
 
 def init_selenium():
@@ -69,18 +70,21 @@ def get_all_vehicle_type(all_maker_url: list) -> list:
 
 def get_all_grade_name(all_vehicle_type_url: list) -> list:
     all_grade_name_url = []
-    for vehicle_type_url in all_vehicle_type_url:
-        time.sleep(2)
+    for i, vehicle_type_url in enumerate(all_vehicle_type_url):
+        if i < 10:
+            time.sleep(2)
 
-        browser = init_selenium()
-        browser.get(vehicle_type_url)
-        iframe = WebDriverWait(browser, 10).until(
-            lambda x: x.find_element_by_id("specTblParts")
-        )
-        browser.switch_to.frame(iframe)
-        all_vehicle_type = browser.find_element_by_class_name("gradeName")
-        all_grade_name_url.append(all_vehicle_type.get_attribute('href'))
-        browser.close()
+            browser = init_selenium()
+            browser.get(vehicle_type_url)
+
+            if len(browser.find_elements_by_id('specTblParts')) > 0:
+                iframe = browser.find_element_by_id("specTblParts")
+                browser.switch_to.frame(iframe)
+                all_vehicle_type = browser.find_element_by_class_name(
+                    "gradeName")
+                all_grade_name_url.append(
+                    all_vehicle_type.get_attribute('href'))
+                browser.close()
 
     print(f'get_all_grade_name passed')
     return all_grade_name_url
@@ -96,7 +100,6 @@ def get_spec_details(all_grade_url: list) -> list:
             spec_detail = init_req.find(id='specDetail')
             # thはtitle, tdはvalue
             all_table = spec_detail.find_all('tr')
-            print(f'all_table: {all_table}')
             for table in all_table:
                 title = table.find('th')
                 value = table.find('td')
@@ -112,8 +115,5 @@ all_maker = get_all_makers()
 all_vehicle_type = get_all_vehicle_type(all_maker)
 
 all_grade_name = get_all_grade_name(all_vehicle_type)
-# ここが空だった
-print(all_grade_name)
 
 spec_details = get_spec_details(all_grade_name)
-print(spec_details)
