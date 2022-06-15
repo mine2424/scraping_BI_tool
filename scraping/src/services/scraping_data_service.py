@@ -1,4 +1,5 @@
 
+import random
 import requests
 from tqdm import tqdm
 from selenium.webdriver.common.by import By
@@ -8,12 +9,14 @@ from selenium import webdriver
 from bs4 import BeautifulSoup
 import time
 
-from scraping.src.models.spec_table import SpecTable
+from models.spec_table import SpecTable
 
 
 class ScrapingDataService:
     def __init__(self) -> None:
         pass
+
+    random_seconds = random.uniform(0.234, 2.637)
 
     def init_BeautifulSoup(self, url: str):
         res = requests.get(url)
@@ -47,9 +50,10 @@ class ScrapingDataService:
         maker_url = init_req.find_all(
             'dd', 'p-side_list_item c-icon_linkArrow p-side_list_item--maker')
 
-        for maker in maker_url:
-            all_maker_url.append(maker.find('a').get('href'))
-            all_maker_name.append(maker.get_text().strip())
+        for i, maker in enumerate(maker_url):
+            if i < 5:
+                all_maker_url.append(maker.find('a').get('href'))
+                all_maker_name.append(maker.get_text().strip())
 
         print(f'get_all_makers passed')
         return {'all_maker_name': all_maker_name, 'all_maker_url': all_maker_url}
@@ -119,5 +123,4 @@ class ScrapingDataService:
                 SpecTable(title=title.get_text(), value=value.get_text())
             )
 
-        print(f'get_spec_details passed')
         return all_spec_details

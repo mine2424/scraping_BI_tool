@@ -1,8 +1,10 @@
+import random
+
+
 class OpenPyxlConstants:
 
     titles = [
         'メーカー',
-        '車種',
         '車名',
         'グレード',
         '新車価格',

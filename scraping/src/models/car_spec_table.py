@@ -13,6 +13,7 @@ class CarSpecTable:
         self.grade
 
         # 新車価格
+        # (以下からが取得するデータの内容)
         self.new_car_price
 
         # 発売日
