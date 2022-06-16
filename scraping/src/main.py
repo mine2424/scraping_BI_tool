@@ -1,4 +1,6 @@
+import random
 import time
+import concurrent.futures
 
 from tqdm import tqdm
 from services.openpyxl_service import OpenpyxlService
@@ -27,27 +29,27 @@ def main():
 
     ### csvに出力する実装 ###
 
+    random_seconds = random.uniform(0.234, 1.000)
     openpyxl_service.init_openpyxl(fileName='sample_car_data')
 
-    for i, maker_name in enumerate(all_maker['all_maker_name']):
-        if i < 2:
+    for i, maker_name in enumerate(tqdm(all_maker['all_maker_name'])):
+        if i < 3:
             for j, vehicle_type_name in enumerate(all_vehicle_type['all_vehicle_type_name']):
-                if j < 5:
-                    for y, grade_name in enumerate(tqdm(all_grade_name['all_grade_name'])):
-                        if y < 10:
-                            time.sleep(2)
-                            spec_details = scraping_data_service.get_spec_detail(
-                                all_grade_name['all_grade_name_url'][y]
-                            )
-                            openpyxl_service.add_data_in_sheet(
-                                maker_name=maker_name,
-                                vehicle_type_name=vehicle_type_name,
-                                grade_name=grade_name,
-                                spec_details=spec_details,
-                            )
+                if j < 10:
+                    for y, grade_name in enumerate(all_grade_name['all_grade_name']):
+                        time.sleep(random_seconds)
+                        spec_details = scraping_data_service.get_spec_detail(
+                            grade_name_url=all_grade_name['all_grade_name_url'][y]
+                        )
+
+                        openpyxl_service.add_data_in_sheet(
+                            maker_name, vehicle_type_name, grade_name, spec_details
+                        )
 
     openpyxl_service.remove_space_col()
     openpyxl_service.create_title()
+
+    print(f'all data wrote csv')
 
 
 if __name__ == '__main__':

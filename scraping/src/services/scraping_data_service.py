@@ -1,22 +1,21 @@
 
+from models.spec_table import SpecTable
+import time
+from bs4 import BeautifulSoup
+from selenium import webdriver
+from selenium.webdriver.chrome import service as fs
+from selenium.webdriver.common.by import By
+from tqdm import tqdm
 import random
 import requests
-from tqdm import tqdm
-from selenium.webdriver.common.by import By
-
-from selenium.webdriver.chrome import service as fs
-from selenium import webdriver
-from bs4 import BeautifulSoup
-import time
-
-from models.spec_table import SpecTable
+import concurrent.futures
 
 
 class ScrapingDataService:
     def __init__(self) -> None:
         pass
 
-    random_seconds = random.uniform(0.234, 2.637)
+    random_seconds = random.uniform(0.234, 1.000)
 
     def init_BeautifulSoup(self, url: str):
         res = requests.get(url)
@@ -44,6 +43,10 @@ class ScrapingDataService:
         return webdriver.Chrome(service=chrome_service, options=options)
 
     def get_all_makers(self):
+        """
+            全国産の自動車メーカーのurlを取得する
+        """
+
         all_maker_url = []
         all_maker_name = []
         init_req = self.init_BeautifulSoup('https://kakaku.com/kuruma/maker/')
@@ -51,22 +54,27 @@ class ScrapingDataService:
             'dd', 'p-side_list_item c-icon_linkArrow p-side_list_item--maker')
 
         for i, maker in enumerate(maker_url):
-            if i < 5:
-                all_maker_url.append(maker.find('a').get('href'))
-                all_maker_name.append(maker.get_text().strip())
+            all_maker_url.append(maker.find('a').get('href'))
+            all_maker_name.append(maker.get_text().strip())
 
         print(f'get_all_makers passed')
         return {'all_maker_name': all_maker_name, 'all_maker_url': all_maker_url}
 
     def get_all_vehicle_type(self, all_maker_url: list):
+        """
+           各自動車メーカーの自動車種別のurlと車種名（アクア、カローラ）を取得する
+        """
+
         all_vehicle_type_url = []
         all_vehicle_type_name = []
-        for i, maker_url in enumerate(tqdm(all_maker_url)):
-            # TODO: remove i < 10
-            if i < 10:
-                time.sleep(2)
-                init_req = self.init_BeautifulSoup(maker_url)
-                all_vehicle_type = init_req.find_all(
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            for i, maker_url in enumerate(tqdm(all_maker_url)):
+                time.sleep(self.random_seconds)
+                init_req = executor.submit(self.init_BeautifulSoup, maker_url)
+                if init_req.result() is None:
+                    continue
+
+                all_vehicle_type = init_req.result().find_all(
                     'li', 'p-side_toggle_item'
                 )
                 for i, body_type in enumerate(all_vehicle_type):
@@ -78,34 +86,57 @@ class ScrapingDataService:
         return {'all_vehicle_type_name': all_vehicle_type_name, 'all_vehicle_type_url': all_vehicle_type_url}
 
     def get_all_grade_name(self, all_vehicle_type_url: list):
+        """
+            各自動車種別の自動車グレードのurlとグレード名を取得する
+        """
+
         all_grade_name_url = []
         all_grade_name = []
-        for i, vehicle_type_url in enumerate(tqdm(all_vehicle_type_url)):
-            # TODO: remove i < 10
-            if i < 10:
-                time.sleep(2)
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            for i, vehicle_type_url in enumerate(tqdm(all_vehicle_type_url)):
+                if i < 10:
+                    time.sleep(0.5)
 
-                browser = self.init_selenium()
-                browser.get(vehicle_type_url)
+                    browserResult = executor.submit(self.init_selenium)
+                    if browserResult.result() is None:
+                        continue
+                    browser = browserResult.result()
+                    browser.set_page_load_timeout(20)
 
-                if len(browser.find_elements(by=By.ID, value='specTblParts')) > 0:
-                    iframe = browser.find_element(
-                        by=By.ID, value='specTblParts'
-                    )
-                    browser.switch_to.frame(iframe)
-                    all_vehicle_type = browser.find_element(
-                        by=By.CLASS_NAME, value='gradeName'
-                    )
-                    all_grade_name_url.append(
-                        all_vehicle_type.get_attribute('href')
-                    )
-                    all_grade_name.append(all_vehicle_type.text)
-                    browser.close()
+                    try:
+                        browser.get(vehicle_type_url)
+                        # executor.submit(browser.get, vehicle_type_url)
+
+                        if len(browser.find_elements(by=By.ID, value='specTblParts')) > 0:
+                            iframe = browser.find_element(
+                                by=By.ID, value='specTblParts'
+                            )
+                            browser.switch_to.frame(iframe)
+                            all_vehicle_type = browser.find_element(
+                                by=By.CLASS_NAME, value='gradeName'
+                            )
+                            all_grade_name_url.append(
+                                all_vehicle_type.get_attribute('href')
+                            )
+                            all_grade_name.append(all_vehicle_type.text)
+                            browser.close()
+                        else:
+                            # 0件の場合は空白を挿入できるようにしたい
+                            # TODO: urlが空白の場合の他のメソッドの対応
+                            # all_grade_name_url.append('')
+                            # all_grade_name.append('')
+                            browser.close()
+                    except Exception as e:
+                        print(f"time out!: {e}")
 
         print(f'get_all_grade_name passed')
         return {'all_grade_name': all_grade_name, 'all_grade_name_url': all_grade_name_url}
 
-    def get_spec_detail(self, grade_name_url: list) -> list:
+    def get_spec_detail(self, grade_name_url) -> list:
+        """
+            各自動車グレードのスペック・仕様を取得する
+        """
+
         all_spec_details = []
 
         init_req = self.init_BeautifulSoup(grade_name_url)
@@ -122,5 +153,33 @@ class ScrapingDataService:
             all_spec_details.append(
                 SpecTable(title=title.get_text(), value=value.get_text())
             )
+
+        # TODO: もっといいアルゴリズムがあるはず
+        # これはあくまで応急処置、
+        # 本当はget_all_grade_nameのif len(browser.find_elements(by=By.ID, value='specTblParts')) > 0:
+        # のelse部分空白を挿入すべき？
+        for i, all_spec_detail in enumerate(all_spec_details):
+            if all_spec_detail.value == '電気':
+                # 所定の場所から３ます空白を挿入する
+                all_spec_details.insert(
+                    i + 2, SpecTable(title='', value=''))
+                all_spec_details.insert(
+                    i + 3, SpecTable(title='', value=''))
+                all_spec_details.insert(
+                    i + 4, SpecTable(title='', value=''))
+                all_spec_details.insert(
+                    i + 8, SpecTable(title='', value=''))
+                all_spec_details.insert(
+                    i + 9, SpecTable(title='', value=''))
+                all_spec_details.insert(
+                    i + 10, SpecTable(title='', value=''))
+                all_spec_details.insert(
+                    i + 11, SpecTable(title='', value=''))
+                all_spec_details.insert(
+                    i + 12, SpecTable(title='', value=''))
+                all_spec_details.insert(
+                    i + 13, SpecTable(title='', value=''))
+            # TODO: ここでbreakしても大丈夫？
+            # break
 
         return all_spec_details
