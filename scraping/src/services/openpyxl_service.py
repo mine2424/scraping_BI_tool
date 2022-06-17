@@ -47,9 +47,22 @@ class OpenpyxlService:
         self.sheet.cell(row=self.max_row, column=2).value = vehicle_type_name
         self.sheet.cell(row=self.max_row, column=3).value = grade_name
 
+        title_column_index = 4
+        # TODO: 電気とレギュラーで全然テーブル項目が違うのでtitleで紐付ける
         for i, spec_detail in enumerate(spec_details):
+            # if OpenPyxlConstants.titlesで存在しないtitleだったら追加する
+            title_column_index = i
             self.sheet.cell(
-                row=self.max_row, column=i+4).value = spec_detail.value
+                row=self.max_row, column=i+4
+            ).value = spec_detail.value
+            if spec_detail.title not in OpenPyxlConstants.titles:
+                self.sheet.cell(
+                    row=1, column=title_column_index
+                ).value = spec_detail.title
+                title_column_index = i + 1
+                pass
+
+        title_column_index = 0
 
         self.add_max_row()
         self.save_sheet()
